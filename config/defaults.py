@@ -43,6 +43,8 @@ _C.MODEL.METRIC_LOSS_TYPE = 'triplet'
 # If train with label smooth, options: 'on', 'off'
 _C.MODEL.IF_LABELSMOOTH = 'on'
 
+# If train with consistency loss, options: 'on', 'off'
+_C.MODEL.IF_WITH_CLOSS = "off"
 
 # -----------------------------------------------------------------------------
 # INPUT

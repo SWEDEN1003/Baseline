@@ -8,7 +8,7 @@ import argparse
 import os
 import sys
 from os import mkdir
-
+import time
 import torch
 from torch.backends import cudnn
 
@@ -58,10 +58,23 @@ def main():
 
     train_loader, val_loader, num_query, num_classes = make_data_loader(cfg)
     model = build_model(cfg, num_classes)
-    model.load_param(cfg.TEST.WEIGHT)
-
-    inference(cfg, model, val_loader, num_query)
-
+    
+    # 伴随测试
+    model_path = cfg.OUTPUT_DIR
+    total_epoch = cfg.SOLVER.MAX_EPOCHS
+    interval_epoch = cfg.SOLVER.CHECKPOINT_PERIOD
+    index_list = [i for i in range(0, total_epoch, interval_epoch)]
+    index_list = index_list[1:]
+    
+    for idx in index_list:
+        model_name = f"resnet50_ibn_a_model_{idx}.pth"
+        load_path = os.path.join(model_path, model_name)
+        
+        while not os.path.exists(load_path):
+            time.sleep(10)
+        
+        model = torch.load(load_path)
+        inference(cfg, model, val_loader, num_query)
 
 if __name__ == '__main__':
     main()

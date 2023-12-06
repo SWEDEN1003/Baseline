@@ -141,11 +141,12 @@ class ResNet_IBN(nn.Module):
         return x
 
     def load_param(self, model_path):
-        param_dict = torch.load(model_path)
+        param_dict = torch.load(model_path, map_location=torch.device("cpu"))['state_dict']
         for i in param_dict:
             if 'fc' in i:
                 continue
-            self.state_dict()[i].copy_(param_dict[i])
+            j = i.replace("module.", "")
+            self.state_dict()[j].copy_(param_dict[i])
 
 
 def resnet50_ibn_a(last_stride, pretrained=False, **kwargs):

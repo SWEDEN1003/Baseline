@@ -35,11 +35,11 @@ def weights_init_classifier(m):
             nn.init.constant_(m.bias, 0.0)
 
 
-class Baseline(nn.Module):
+class Idea(nn.Module):
     in_planes = 2048
 
     def __init__(self, num_classes, last_stride, model_path, neck, neck_feat, model_name, pretrain_choice):
-        super(Baseline, self).__init__()
+        super(Idea, self).__init__()
         if model_name == 'resnet18':
             self.in_planes = 512
             self.base = ResNet(last_stride=last_stride, 
@@ -146,12 +146,14 @@ class Baseline(nn.Module):
             self.classifier = nn.Conv2d(self.in_planes, self.num_classes, kernel_size=1, padding=0)
             self.classifier.apply(weights_init_kaiming)
 
-    def forward(self, x):
+    def forward(self, x, label=None):
         if self.training:
             mode = 'True'
         else:
             mode = 'False'
         base = self.base(x)
+        base_map = torch.mean(base, dim=1, keepdim=True)
+        base = base * base_map
         if self.neck == 'bnneck':
             base_BN = self.bottleneck(base, is_train=mode)
         if self.neck == 'no':
@@ -168,8 +170,10 @@ class Baseline(nn.Module):
             if self.neck == 'no':
                 cls_score = self.gap(self.classifier(base)).view(feat.shape[0], -1)
             elif self.neck == 'bnneck':
-                cls_score = self.gap(self.classifier(base_BN)).view(feat.shape[0], -1)
-            return cls_score, global_feat  # global feature for triplet loss
+                score_map = self.classifier(base_BN)
+                localization_map_normed = self.get_atten_map(feature_maps=score_map, gt_labels=label, normalize=False)
+                cls_score = self.gap(score_map).view(feat.shape[0], -1)
+            return cls_score, global_feat, localization_map_normed, base_map  # global feature for triplet loss
         else:
             if self.neck_feat == 'after':
                 return feat
@@ -182,3 +186,31 @@ class Baseline(nn.Module):
             if 'classifier' in i:
                 continue
             self.state_dict()[i].copy_(param_dict[i])
+
+    def normalize_atten_maps(self, atten_maps):
+        atten_shape = atten_maps.size()
+
+        # --------------------------
+        batch_mins, _ = torch.min(atten_maps.view(atten_shape[0:-2] + (-1,)), dim=-1, keepdim=True)
+        batch_maxs, _ = torch.max(atten_maps.view(atten_shape[0:-2] + (-1,)), dim=-1, keepdim=True)
+        atten_normed = torch.div(atten_maps.view(atten_shape[0:-2] + (-1,)) - batch_mins,
+                                 batch_maxs - batch_mins)
+        atten_normed = atten_normed.view(atten_shape)
+
+        return atten_normed
+
+    def get_atten_map(self, feature_maps, gt_labels, normalize=True):
+        label = gt_labels
+
+        feature_map_size = feature_maps.size()
+        batch_size = feature_map_size[0]
+
+        atten_map = torch.zeros([feature_map_size[0], 1, feature_map_size[2], feature_map_size[3]])
+        atten_map = (atten_map.cuda())
+        for batch_idx in range(batch_size):
+            atten_map[batch_idx, 0, :, :] = (feature_maps[batch_idx, label.data[batch_idx], :, :])
+
+        if normalize:
+            atten_map = self.normalize_atten_maps(atten_map)
+
+        return atten_map

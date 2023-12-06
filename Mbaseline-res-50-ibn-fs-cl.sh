@@ -9,9 +9,11 @@
 # bnneck on
 # without center loss
 
-python3 tools/train.py \
+python3 tools/train_idea.py \
 --config_file='configs/softmax_triplet.yml' \
-MODEL.DEVICE_ID "('0')" \
+MODEL.DEVICE_ID "('3')" \
+MODEL.NAME "('resnet50_ibn_a')" \
+MODEL.IF_WITH_CLOSS "('on')" \
 DATASETS.NAMES "('market1501')" \
-DATASETS.ROOT_DIR "('/mnt/CEPH_YIGO4/perception/g0/weidong.shi/workspace/ReID')" \
-OUTPUT_DIR "('/mnt/CEPH_YIGO4/perception/g0/weidong.shi/project/Baseline/results/Market/baseline')"
+DATASETS.ROOT_DIR "('/home/weidong.shi1/data')" \
+OUTPUT_DIR "('./results/baseline-res-50-ibn-fs-cl/Market')"
