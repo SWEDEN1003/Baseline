@@ -17,7 +17,7 @@ from .cl import Consistent_compare
 global ITER
 ITER = 0
 
-def create_supervised_trainer(model, optimizer, loss_fn,
+def create_supervised_trainer(model, optimizer, loss_fn,loss_attention_cri,
                               device=None):
     """
     Factory function for creating a trainer for supervised models
@@ -43,8 +43,8 @@ def create_supervised_trainer(model, optimizer, loss_fn,
         img, target = batch
         img = img.to(device) if torch.cuda.device_count() >= 1 else img
         target = target.to(device) if torch.cuda.device_count() >= 1 else target
-        score, feat = model(img, target)
-        loss = loss_fn(score, feat, target)
+        score, feat, cam, base_map = model(img, target)
+        loss = loss_fn(score, feat, target) + 0.01 * Consistent_compare(base_map, cam, loss_attention_cri)
         loss.backward()
         optimizer.step()
         # compute acc
@@ -140,7 +140,8 @@ def do_train(
         scheduler,
         loss_fn,
         num_query,
-        start_epoch
+        start_epoch,
+        loss_attention_cri
 ):
     log_period = cfg.SOLVER.LOG_PERIOD
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
@@ -151,8 +152,8 @@ def do_train(
 
     logger = logging.getLogger("reid_baseline.train")
     logger.info("Start training")
-    logger.info(f"=====> Use orignal resnext,  its model_size :{model_size(model)}<=====")
-    trainer = create_supervised_trainer(model, optimizer, loss_fn, device=device)
+    logger.info(f"=====> Use light resnext,  its model_size :{model_size(model)}<=====")
+    trainer = create_supervised_trainer(model, optimizer, loss_fn, loss_attention_cri, device=device)
     evaluator = create_supervised_evaluator(model, metrics={'r1_mAP': R1_mAP(num_query, max_rank=50, feat_norm=cfg.TEST.FEAT_NORM)}, device=device)
     checkpointer = ModelCheckpoint(output_dir, cfg.MODEL.NAME, checkpoint_period, n_saved=10, require_empty=False)
     timer = Timer(average=True)

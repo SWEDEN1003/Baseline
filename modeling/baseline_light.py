@@ -36,11 +36,11 @@ def weights_init_classifier(m):
             nn.init.constant_(m.bias, 0.0)
 
 
-class Baseline(nn.Module):
+class Baseline_light(nn.Module):
     in_planes = 2048
 
     def __init__(self, num_classes, last_stride, model_path, neck, neck_feat, model_name, pretrain_choice):
-        super(Baseline, self).__init__()
+        super(Baseline_light, self).__init__()
         if model_name == 'resnet18':
             self.in_planes = 512
             self.base = ResNet(last_stride=last_stride, 
@@ -165,7 +165,10 @@ class Baseline(nn.Module):
             self.classifier.apply(weights_init_classifier)
 
     def forward(self, x, target=None):
-        global_feat = self.gap(self.base(x))  # (b, 2048, 1, 1)
+        base = self.base(x)
+        base_map = torch.mean(base, dim=1, keepdim=True)
+        base = base_map * base
+        global_feat = self.gap(base)  # (b, 2048, 1, 1)
         global_feat = global_feat.view(global_feat.shape[0], -1)  # flatten to (bs, 2048)
 
         if self.neck == 'no':
@@ -175,7 +178,8 @@ class Baseline(nn.Module):
 
         if self.training:
             cls_score = self.classifier(feat)
-            return cls_score, global_feat  # global feature for triplet loss
+            cam = self.get_cam(base, target)
+            return cls_score, global_feat, cam, base_map  # global feature for triplet loss
         else:
             if self.neck_feat == 'after':
                 # print("Test with feature after BN")
@@ -190,3 +194,9 @@ class Baseline(nn.Module):
             if 'classifier' in i:
                 continue
             self.state_dict()[i].copy_(param_dict[i])
+
+    def get_cam(self, base, target):
+        weight = self.classifier.weight[target][:,:,None,None]
+        cam = weight * base
+        cam = torch.mean(cam, dim=1, keepdim=True)
+        return cam

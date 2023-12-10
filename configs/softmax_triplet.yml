@@ -1,6 +1,6 @@
 MODEL:
   PRETRAIN_CHOICE: 'imagenet'
-  PRETRAIN_PATH: '/mnt/CEPH_YIGO4/perception/g0/weidong.shi/workspace/ReID/resnet50-19c8e357.pth'
+  PRETRAIN_PATH: '/home/weidong.shi1/data/resnet50-19c8e357.pth'
   METRIC_LOSS_TYPE: 'triplet'
   IF_LABELSMOOTH: 'on'
   IF_WITH_CENTER: 'no'

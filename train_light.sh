@@ -9,10 +9,10 @@
 # bnneck on
 # without center loss
 
-python3 tools/train.py \
+python3 tools/train_light.py \
 --config_file='configs/softmax_triplet.yml' \
-MODEL.DEVICE_ID "('0')" \
-MODEL.NAME "('resnext101')" \
+MODEL.DEVICE_ID "('1')" \
+MODEL.NAME "('resnext101_light')" \
 DATASETS.NAMES "('market1501')" \
 DATASETS.ROOT_DIR "('/home/weidong.shi1/data/')" \
-OUTPUT_DIR "('./results/oright/market')"
+OUTPUT_DIR "('./results/light/market')"

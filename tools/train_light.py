@@ -14,8 +14,8 @@ from torch.backends import cudnn
 sys.path.append('.')
 from config import cfg
 from data import make_data_loader
-from engine.trainer import do_train, do_train_with_center
-from modeling import build_model
+from engine.trainer_light import do_train, do_train_with_center
+from modeling import build_light_model
 from layers import make_loss, make_loss_with_center
 from solver import make_optimizer, make_optimizer_with_center, WarmupMultiStepLR
 
@@ -27,7 +27,8 @@ def train(cfg):
     train_loader, val_loader, num_query, num_classes = make_data_loader(cfg)
 
     # prepare model
-    model = build_model(cfg, num_classes)
+    model = build_light_model(cfg, num_classes)
+    loss_attention_cri = nn.MSELoss()
     if cfg.MODEL.IF_WITH_CENTER == 'no':
         print('Train without center loss, the loss type is', cfg.MODEL.METRIC_LOSS_TYPE)
         optimizer = make_optimizer(cfg, model)
@@ -65,6 +66,7 @@ def train(cfg):
             loss_func,
             num_query,
             start_epoch,     # add for using self trained model
+            loss_attention_cri,
         )
     elif cfg.MODEL.IF_WITH_CENTER == 'yes':
         print('Train with center loss, the loss type is', cfg.MODEL.METRIC_LOSS_TYPE)
